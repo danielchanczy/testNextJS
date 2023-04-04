@@ -1,42 +1,52 @@
-// components/AddPost.tsx
-
 import * as React from 'react'
+import { InferGetStaticPropsType } from 'next'
+import AddPost from '../components/AddPost'
+import Post from '../components/Post'
 import { IPost } from '../types'
 
-type Props = {
-  savePost: (e: React.FormEvent, formData: IPost) => void
-}
+const API_URL: string = 'https://jsonplaceholder.typicode.com/posts'
 
-const AddPost: React.FC<Props> = ({ savePost }) => {
-  const [formData, setFormData] = React.useState<IPost>()
+export default function IndexPage({
+  posts,
+}: InferGetStaticPropsType<typeof getStaticProps>) {
+  const [postList, setPostList] = React.useState(posts)
 
-  const handleForm = (e: React.FormEvent<HTMLInputElement>): void => {
-    setFormData({
-      ...formData,
-      [e.currentTarget.id]: e.currentTarget.value,
-    })
+  const addPost = async (e: React.FormEvent, formData: IPost) => {
+    e.preventDefault()
+    const post: IPost = {
+      id: Math.random(),
+      title: formData.title,
+      body: formData.body,
+    }
+    setPostList([post, ...postList])
   }
 
+  const deletePost = async (id: number) => {
+    const posts: IPost[] = postList.filter((post: IPost) => post.id !== id)
+    console.log(posts)
+    setPostList(posts)
+  }
+
+  if (!postList) return <h1>Loading...</h1>
+
   return (
-    <form className='Form' onSubmit={(e) => savePost(e, formData)}>
-      <div>
-        <div className='Form--field'>
-          <label htmlFor='name'>Title</label>
-          <input onChange={handleForm} type='text' id='title' />
-        </div>
-        <div className='Form--field'>
-          <label htmlFor='body'>Description</label>
-          <input onChange={handleForm} type='text' id='body' />
-        </div>
-      </div>
-      <button
-        className='Form__button'
-        disabled={formData === undefined ? true : false}
-      >
-        Add Post
-      </button>
-    </form>
+    <main className='container'>
+      <h1>My posts</h1>
+      <AddPost savePost={addPost} />
+      {postList.map((post: IPost) => (
+        <Post key={post.id} deletePost={deletePost} post={post} />
+      ))}
+    </main>
   )
 }
 
-export default AddPost
+export async function getStaticProps() {
+  const res = await fetch(API_URL)
+  const posts: IPost[] = await res.json()
+
+  return {
+    props: {
+      posts,
+    },
+  }
+}
